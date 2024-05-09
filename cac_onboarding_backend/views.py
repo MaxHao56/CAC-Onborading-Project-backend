@@ -14,6 +14,8 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate
 import json
 
+from django.core.exceptions import ObjectDoesNotExist
+import logging
 
 
 from .serializers import *
@@ -89,13 +91,14 @@ def user_profile(request):
 
     return Response({'username': username})
 
-
+@api_view(['POST'])
 def process_logout(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         logout(request)
         session_key = data.get('session_key')
 
+    try:
         session = Session.objects.get(session_key=session_key)
         session.expire_date = timezone.now()
         session.save()
@@ -105,11 +108,13 @@ def process_logout(request):
 
         
 
-    # Deleting the expired sessions
+
         expired_sessions.delete()
+        return Response({'Message':'session deleted'})
+    except ObjectDoesNotExist:
+            logging.error("Session with key {} does not exist.".format(session_key))
+            return Response({'Error':'Session not found.'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+            logging.error("Error while processing logout: {}".format(str(e)))
+            return Response({'Error':'An error occurred while processing logout.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        reponse = redirect('home_view')
-  
-        reponse.set_cookie('session_key',session_key, max_age=1)
-
-        return reponse

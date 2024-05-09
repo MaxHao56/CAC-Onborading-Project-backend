@@ -20,6 +20,7 @@ class RegisterSeralizer(serializers.ModelSerializer):
         )
         return user
     
+    
 class LoginSeralizer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField()
