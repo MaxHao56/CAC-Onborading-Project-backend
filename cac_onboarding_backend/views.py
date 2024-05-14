@@ -118,3 +118,17 @@ def process_logout(request):
             logging.error("Error while processing logout: {}".format(str(e)))
             return Response({'Error':'An error occurred while processing logout.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+
+
+from django.http import JsonResponse
+from .models import Location
+
+
+# The location list takes all the data in the "LOCATION MODEL"
+# Transformes into json format and return it to the web
+def location_list(request):
+    locations = Location.objects.all()
+    data = [{'streetname': location.streetname, 'durationtime': location.durationtime, 'importance': location.importance} for location in locations]
+    return JsonResponse(data, safe=False)
+
