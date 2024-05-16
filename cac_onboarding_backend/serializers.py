@@ -62,3 +62,17 @@ class LoginSeralizer(serializers.Serializer):
 #         )
 
 #         return user
+
+
+from .models import *
+class LocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Location
+        fields = '__all__'
+
+
+class LocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Location_Map
+        fields = ['id', 'name', 'latitude', 'longitude', 'duration', 'cost']
+        read_only_fields = ['cost']

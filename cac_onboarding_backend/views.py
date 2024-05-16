@@ -132,3 +132,110 @@ def location_list(request):
     data = [{'streetname': location.streetname, 'durationtime': location.durationtime, 'importance': location.importance} for location in locations]
     return JsonResponse(data, safe=False)
 
+
+@api_view(['POST'])
+def create_location(request):
+     if request.method == 'POST':
+          serializer = LocationSerializer(data=request.data)
+          if serializer.is_valid():
+               serializer.save()
+               return Response(serializer.data, status=status.HTTP_201_CREATED)
+          return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+     
+
+
+from .serializers import LocationSerializer
+from .utils import calculate_cost
+
+@api_view(['POST'])
+def add_location(request):
+    if request.method == 'POST':
+        serializer = LocationSerializer(data=request.data)
+        if serializer.is_valid():
+            location = serializer.save()
+            # Transform duration to cost
+            location.cost = calculate_cost(location.duration)
+            location.save()
+            # Return the updated serializer data with the cost included
+            return Response(LocationSerializer(location).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+from .utils import haversine, dijkstra
+
+@api_view(['GET'])
+def best_route(request, start_id, end_id):
+    try:
+        start_location = Location.objects.get(id=start_id)
+        end_location = Location.objects.get(id=end_id)
+    except Location.DoesNotExist:
+        return Response({'error': 'Location not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    locations = Location.objects.all()
+    graph = build_graph(locations)
+
+    path = dijkstra(graph, start_location.id, end_location.id)
+
+    if path is None:
+        return Response({'error': 'No path found between the locations.'}, status=status.HTTP_404_NOT_FOUND)
+
+    route = [Location.objects.get(id=location_id).name for location_id in path]
+
+    return Response({'route': route}, status=status.HTTP_200_OK)
+
+def build_graph(locations):
+    graph = {}
+    for location in locations:
+        graph[location.id] = {}
+        for other_location in locations:
+            if location.id != other_location.id:
+                distance = haversine(location.latitude, location.longitude, other_location.latitude, other_location.longitude)
+                graph[location.id][other_location.id] = distance
+    return graph
+
+
+
+
+
+
+
+
+
+
+
+
+from .shortestpath import dijkstra, haversine
+@api_view(['GET'])
+def get_shortest_path(request):
+    if request.method =='GET':
+              graph = {
+        "A": {"B": 10, "C": 15},
+        "B": {"A": 10, "C": 5},
+        "C": {"A": 15, "B": 5}
+    }
+
+    # Example coordinates for points
+    coordinates = {
+        "A": (40.7128, -74.0060),  # New York
+        "B": (34.0522, -118.2437), # Los Angeles
+        "C": (41.8781, -87.6298)   # Chicago
+    }
+
+    start = "A"
+    end = "C"
+
+    shortest_path = dijkstra(graph, start, end)
+    if shortest_path:
+        print("Shortest path:", shortest_path)
+        total_distance = 0
+        for i in range(len(shortest_path) - 1):
+            node1 = shortest_path[i]
+            node2 = shortest_path[i + 1]
+            lat1, lon1 = coordinates[node1]
+            lat2, lon2 = coordinates[node2]
+            distance = haversine(lat1, lon1, lat2, lon2)
+            total_distance += distance
+        print("Total distance:", total_distance, "km")
+    else:
+        print("No path found")
+

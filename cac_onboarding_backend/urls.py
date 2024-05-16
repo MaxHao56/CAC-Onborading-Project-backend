@@ -26,4 +26,9 @@ urlpatterns = [
     path('api/logout',views.process_logout,name='Logout'),
     path('api/register',register_api,name='register_view'),
     path('api/login',login_api, name='login_view'),
+    path('api/locations',location_list, name='locations_lists'),
+    path('api/create-locations',create_location,name='create_locations'),
+    path('api/getinfo',get_shortest_path,name='getshortestpath'),
+    path('add_location',add_location,name='add_location'),
+    path('best-route/<int:start_id>/<int:end_id>/', best_route, name='best-route'),
 ]
